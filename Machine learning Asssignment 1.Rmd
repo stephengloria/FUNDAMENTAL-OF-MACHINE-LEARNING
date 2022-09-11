@@ -1,0 +1,36 @@
+---
+title: "Machine learning Assignment 1"
+author: "Gloria"
+date: "2022-09-11"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup}
+ml001_dataset <- read.csv(file.choose())
+View(ml001_dataset)
+
+head(ml001_dataset)
+tail(ml001_dataset)
+nrow(ml001_dataset)
+ncol(ml001_dataset)
+str(ml001_dataset)
+summary(ml001_dataset)
+
+ml001_dataset_arrange <- (ml001_dataset$Price + sd(ml001_dataset$Price)/var(ml001_dataset$Price))
+ml001_dataset_arrange
+hist(ml001_dataset$Price)
+
+ml001_dataset$Price <- (ml001_dataset$Price - mean(ml001_dataset$Price)/sd(ml001_dataset$Price))
+ml001_dataset$Price
+
+hist(ml001_dataset$Price)
+
+x <- ml001_dataset$Price
+y <- ml001_dataset$Quantity
+
+plot(x,y, main = "price and quantity", xlab = "price", ylab = "Quantity")
+
+```
+
