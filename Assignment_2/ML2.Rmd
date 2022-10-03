@@ -1,0 +1,221 @@
+---
+title: "ML2"
+author: "Gloria Stephen"
+date: "2022-10-02"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(caret)
+UniversalBank <- read_csv("C:/Users/idast/Downloads/UniversalBank.csv")
+UniversalBank$Personal.Loan =as.factor(UniversalBank$Personal.Loan)
+data1<-UniversalBank
+
+summary(UniversalBank)
+
+View(data1)
+```
+##removing unwanted data from dataset
+```{r}
+data2<-data1[,-c(1,5)]
+View(data2)
+```
+
+#converting personal loan to factors
+```{r}
+#data2$Personal.Loan =as.factor(data2$Personal.Loan)
+
+View(data2)
+```
+
+#creating the dummy variables 
+```{r}
+Education_1 <- ifelse(data2$Education == 1, 1,0)
+Education_2 <- ifelse(data2$Education == 2, 1,0)
+Education_3 <- ifelse(data2$Education == 3, 1,0)
+```
+
+
+```{r}
+
+data3<-data.frame(Age=data2$Age,Experience=data2$Experience,Income=data2$Income,Family=data2$Family,CCAvg=data2$CCAvg, Education_1=Education_1,Education_2=Education_2,Education_3=Education_3,Personal.Loan=data2$Personal.Loan,Mortgage=data2$Mortgage,Securities.Account=data2$Securities.Account,CD.Account=data2$CD.Account,Online=data2$Online,CreditCard=data2$CreditCard)
+
+View(data3)
+```
+
+##creating a partition of 60:40 
+```{r}
+Train_Index = createDataPartition(data3$Personal.Loan,p=0.6, list = FALSE)
+Train.df =data3[Train_Index,]
+Validation.df=data3[-Train_Index,]
+
+nrow(Train.df)
+
+nrow(Validation.df)
+```
+
+#normalization of the data
+
+```{r}
+
+Norm_model <- preProcess(Train.df[,-(6:9)], method = c("center", "scale"))
+
+training_norm<-predict(Norm_model,Train.df)
+
+validation_norm<-predict(Norm_model,Validation.df)
+
+
+```
+#test data set
+
+```{r}
+Test<-data.frame(Age=40,Experience=10,Income=84,Family=2,CCAvg=2,Education_1=0,Education_2=1,Education_3=0,Mortgage=0,Securities.Account=0,CD.Account=0,Online=1,CreditCard=1)
+
+
+View(Test)
+
+test_norm<-predict(Norm_model,Test)
+
+```
+#knn algorithm in dataset
+```{r}
+
+
+library(class)
+
+pred_train<-training_norm[,-9]
+label_train<-training_norm[,9]
+
+pred_valid<-validation_norm[,-9]
+label_valid<-validation_norm[,9]
+
+
+
+View(training_norm)
+
+Model<-knn(pred_train,test_norm,cl=label_train,k=1)
+
+Model
+
+
+#since value of k=0, the customer will not accept the loan offer
+
+
+```
+#Finding the best value for k
+
+```{r}
+
+set.seed(541)
+
+searchGrid <- expand.grid(k=seq(1:30))
+
+predicted <- train(Personal.Loan~.,training_norm,method="knn",tuneGrid=searchGrid)
+
+predicted
+
+best_k <- predicted$bestTune[[1]]
+
+#this saves the best value for k
+
+```
+
+#the confusion matrix
+
+```{r}
+
+model<-predict(predicted,validation_norm[,-9])
+
+confusionMatrix(model,label_valid)
+
+
+```
+
+#knn for new customer
+
+```{r}
+Prediction_new<-knn(pred_train,test_norm,cl=label_train,k=best_k)
+
+Prediction_new
+
+#k=0, new customer will not accept the loan offer
+
+```
+#5#splitting data to 50:30:20 ratio
+
+set.seed(887)
+
+
+part1<- createDataPartition(data3$Personal.Loan,p=.5,list=FALSE,times=1)
+
+part2<- createDataPartition(data3$Personal.Loan,p=.3,list=FALSE,times=1)
+
+part3<- createDataPartition(data3$Personal.Loan,p=.2,list=FALSE,times=1)
+
+new_train  <- data3[part1, ]
+
+new_valid  <- data3[part2, ]
+
+new_test <- data3[part3, ]
+
+
+#normalization of the data
+
+normalized <- preProcess(Train.df[,-(6:9)], method=c("center","scale"))
+
+#training data 
+
+normalized_train <- predict(normalized,new_train)
+
+#the validation data 
+
+normalized_valid<-predict(normalized,new_valid)
+
+#the test data created
+
+normalized_test<-predict(normalized,new_test)
+
+#running knn for train,validation and test data
+
+pred_train1=normalized_train[,-9]
+
+label_train1=normalized_train[,9]
+
+pred_valid1=normalized_valid[,-9]
+
+label_valid1=normalized_valid[,9]
+
+pred_test1=normalized_test[,-9]
+
+label_test1=normalized_test[,9]
+
+training_prediction<-knn(pred_train1,pred_train1,cl=label_train1,k=best_k)
+
+validation_prediction<-knn(pred_train1,pred_valid1,cl=label_train1,k=best_k)
+
+test_prediction<-knn(pred_train1,pred_test1,cl=label_train1,k=best_k)
+
+#confusion matrix of training data
+
+confusionMatrix(pred_train1,label_train1)
+
+
+#confusion matrix of validation data
+
+confusionMatrix(pred_valid1,label_valid1)
+
+
+#confusion matrix of test data
+
+
+confusionMatrix(pred_test1,label_test1)
+
+
